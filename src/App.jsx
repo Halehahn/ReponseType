@@ -24,7 +24,8 @@ export default function App() {
   const [copied, setCopied] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [mobileMenu, setMobileMenu] = useState(false);\n  const searchRef = useRef(null);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const searchRef = useRef(null);
 
   async function load() {
     if (!supabase) { setError('Connexion Supabase non configurée. Ajoutez les variables VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY dans Vercel.'); setLoading(false); return; }
