@@ -7,3 +7,21 @@
 .search-shortcut{flex:none;border:1px solid #e8e6ef;border-radius:5px;background:#faf9fc;color:#a09daf;padding:3px 6px;font:600 9px 'DM Sans',sans-serif;white-space:nowrap}
 .search-box input{min-width:0}
 @media(max-width:700px){.search-shortcut{display:none}}
+
+/* Galerie des équipements Freebox */
+.freebox-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.freebox-card{background:#fff;border:1px solid #eeedf3;border-radius:13px;overflow:hidden;min-width:0;transition:box-shadow .2s,border-color .2s}
+.freebox-card:hover{border-color:#ded6f5;box-shadow:0 7px 22px #31245d0a}
+.freebox-visual{height:165px;background:linear-gradient(145deg,#f8f7fc,#efedf7);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px}
+.freebox-visual-1{background:linear-gradient(145deg,#f7f7f9,#e9e9ee)}.freebox-visual-2{background:linear-gradient(145deg,#f8f6ff,#e9e3fb)}.freebox-visual-3{background:linear-gradient(145deg,#f5f7fa,#e6ebf2)}
+.freebox-device{width:128px;height:62px;border-radius:8px;background:linear-gradient(145deg,#4b4a58,#252432);box-shadow:0 12px 22px #26213930;position:relative;display:flex;align-items:center;justify-content:center}
+.freebox-led{width:5px;height:5px;border-radius:50%;background:#a78bfa;box-shadow:0 0 8px #a78bfa}
+.freebox-frontline{position:absolute;bottom:9px;left:15px;right:15px;height:1px;background:#aaa8bb55}
+.visual-caption{font-size:10px;color:#aaa6b8}
+.freebox-info{padding:16px}.freebox-meta{font-size:10px;color:#9b8bc9;font-weight:700}
+.freebox-info h3{font:700 14px Manrope,sans-serif;color:#302e43;margin:8px 0}
+.freebox-info p{font-size:11px;line-height:1.5;color:#898799;min-height:34px;margin:0 0 13px}
+.freebox-info a{display:inline-flex;align-items:center;gap:6px;color:#7654d6;font-size:11px;font-weight:700;text-decoration:none}
+.freebox-info a:hover{text-decoration:underline}.gallery-note{font-size:10px;color:#a09daf;margin-top:20px}
+@media(max-width:1100px){.freebox-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.freebox-grid{grid-template-columns:1fr 1fr;gap:10px}.freebox-visual{height:125px}.freebox-info{padding:12px}.freebox-info h3{font-size:12px}.freebox-info p{font-size:10px;min-height:50px}}

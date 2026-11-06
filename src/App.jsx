@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Search, Plus, Copy, Star, Pencil, Trash2, X, Menu, MessageSquareText, Check, Tag, SlidersHorizontal } from 'lucide-react';
+import { Search, Plus, Copy, Star, Pencil, Trash2, X, Menu, MessageSquareText, Check, Tag, SlidersHorizontal, Images, ExternalLink } from 'lucide-react';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
+const freeboxModels = [{"name":"Freebox Ultra","year":"2024","type":"Fibre","equipment":"Server Ultra, Player TV Free 4K, répéteur Wi-Fi 7","url":"https://www.free.fr/freebox/"},{"name":"Freebox Ultra Essentiel","year":"2024","type":"Fibre","equipment":"Server Ultra, Player TV en option","url":"https://www.free.fr/freebox/"},{"name":"Freebox Pop","year":"2020","type":"Fibre / ADSL","equipment":"Server Pop, Player TV Pop, répéteur Wi-Fi Pop","url":"https://www.free.fr/freebox/freebox-pop"},{"name":"Freebox Pop S","year":"2024","type":"Fibre","equipment":"Server Pop, sans Player TV inclus","url":"https://www.free.fr/freebox/freebox-pop"},{"name":"Freebox Delta","year":"2018","type":"Fibre / ADSL","equipment":"Server Delta, Player Devialet ou Player Pop","url":"https://assistance.free.fr/"},{"name":"Freebox One","year":"2018","type":"Fibre / ADSL","equipment":"Boîtier tout-en-un Server et Player","url":"https://assistance.free.fr/"},{"name":"Freebox Révolution","year":"2010","type":"Fibre / ADSL","equipment":"Server Révolution, Player avec lecteur Blu-ray","url":"https://assistance.free.fr/"},{"name":"Freebox Révolution Light","year":"2023","type":"Fibre / ADSL","equipment":"Server Révolution et Player TV","url":"https://assistance.free.fr/"},{"name":"Freebox mini 4K","year":"2015","type":"Fibre / ADSL","equipment":"Server mini 4K et Player Android TV","url":"https://assistance.free.fr/"},{"name":"Freebox Crystal","year":"2013","type":"ADSL","equipment":"Boîtier ADSL et Player Crystal","url":"https://assistance.free.fr/"},{"name":"Freebox HD / V5","year":"2006","type":"ADSL","equipment":"Boîtier ADSL et boîtier HD TV","url":"https://assistance.free.fr/"},{"name":"Freebox V4","year":"2004","type":"ADSL","equipment":"Boîtier Freebox V4","url":"https://assistance.free.fr/"},{"name":"Freebox V3","year":"2003","type":"ADSL","equipment":"Boîtier Freebox V3","url":"https://assistance.free.fr/"},{"name":"Freebox V1 / V2","year":"2002","type":"ADSL","equipment":"Premières générations de boîtiers Freebox","url":"https://assistance.free.fr/"}];
 const emptyForm = { title: '', content: '', category_id: '', shortcut: '', tags: '' };
 const normalizeSearch = value => (value || '')
   .toLocaleLowerCase('fr')
@@ -25,6 +26,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryQuery, setGalleryQuery] = useState('');
   const searchRef = useRef(null);
 
   async function load() {
@@ -109,16 +112,18 @@ export default function App() {
   return <div className="app-shell">
     <aside className={`sidebar ${mobileMenu?'open':''}`}>
       <div className="brand"><div className="brand-mark"><MessageSquareText size={21}/></div><span>Réponse Type</span><button className="icon-btn mobile-close" onClick={()=>setMobileMenu(false)}><X size={19}/></button></div>
-      <button className={`side-link ${category==='all'&&!favoritesOnly?'active':''}`} onClick={()=>{setCategory('all');setFavoritesOnly(false);setMobileMenu(false)}}><MessageSquareText size={18}/> Toutes les réponses <span className="side-count">{count}</span></button>
-      <button className={`side-link ${favoritesOnly?'active':''}`} onClick={()=>{setFavoritesOnly(v=>!v);setCategory('all');setMobileMenu(false)}}><Star size={18}/> Favoris</button>
+      <button className={`side-link ${category==='all'&&!favoritesOnly&&!showGallery?'active':''}`} onClick={()=>{setCategory('all');setFavoritesOnly(false);setShowGallery(false);setMobileMenu(false)}}><MessageSquareText size={18}/> Toutes les réponses <span className="side-count">{count}</span></button>
+      <button className={`side-link ${favoritesOnly?'active':''}`} onClick={()=>{setFavoritesOnly(v=>!v);setCategory('all');setShowGallery(false);setMobileMenu(false)}}><Star size={18}/> Favoris</button>
+      <button className={`side-link ${showGallery ? "active" : ""}`} onClick={()=>{setShowGallery(true);setMobileMenu(false)}}><Images size={18}/> Photos des Freebox <span className="side-count">{freeboxModels.length}</span></button>
       <div className="side-label">CATÉGORIES</div>
-      {categories.map(c=><button key={c.id} className={`side-link ${category===c.id?'active':''}`} onClick={()=>{setCategory(c.id);setFavoritesOnly(false);setMobileMenu(false)}}><span className="category-dot" style={{background:c.color || '#a78bfa'}}/>{c.name}<span className="side-count">{responses.filter(r=>r.category_id===c.id).length}</span></button>)}
+      {categories.map(c=><button key={c.id} className={`side-link ${category===c.id?'active':''}`} onClick={()=>{setCategory(c.id);setFavoritesOnly(false);setShowGallery(false);setMobileMenu(false)}}><span className="category-dot" style={{background:c.color || '#a78bfa'}}/>{c.name}<span className="side-count">{responses.filter(r=>r.category_id===c.id).length}</span></button>)}
       <div className="sidebar-bottom"><div className="sidebar-note">Votre bibliothèque de réponses, toujours à portée de main.</div></div>
     </aside>
     {mobileMenu && <div className="scrim" onClick={()=>setMobileMenu(false)}/>}
     <main className="main">
-      <header className="topbar"><button className="icon-btn mobile-menu" onClick={()=>setMobileMenu(true)}><Menu/></button><div className="crumb">Bibliothèque <span>/</span> <b>{favoritesOnly?'Favoris':category==='all'?'Toutes les réponses':categories.find(c=>c.id===category)?.name}</b></div><button className="primary-btn top-add" onClick={openNew}><Plus size={17}/> Nouvelle réponse</button></header>
+      <header className="topbar"><button className="icon-btn mobile-menu" onClick={()=>setMobileMenu(true)}><Menu/></button><div className="crumb">Bibliothèque <span>/</span> <b>{showGallery?'Photos des Freebox':favoritesOnly?'Favoris':category==='all'?'Toutes les réponses':categories.find(c=>c.id===category)?.name}</b></div>{!showGallery && <button className="primary-btn top-add" onClick={openNew}><Plus size={17}/> Nouvelle réponse</button>}</header>
       <section className="content">
+        {showGallery ? <><div className="page-heading"><div><div className="eyebrow">GUIDE VISUEL DES ÉQUIPEMENTS</div><h1>Photos des Freebox</h1><p>Parcourez les générations de Freebox et les équipements associés.</p></div><div className="total-pill">{freeboxModels.length} modèles</div></div><div className="toolbar"><div className="search-box"><Search size={19}/><input value={galleryQuery} onChange={e=>setGalleryQuery(e.target.value)} placeholder="Rechercher un modèle ou un équipement…"/></div></div><div className="freebox-grid">{freeboxModels.filter(m=>(m.name+" "+m.type+" "+m.equipment).toLocaleLowerCase("fr").includes(galleryQuery.toLocaleLowerCase("fr"))).map((m,i)=><article className="freebox-card" key={m.name}><div className={`freebox-visual freebox-visual-${i%4}`}><div className="freebox-device"><span className="freebox-led"/><span className="freebox-frontline"/></div><span className="visual-caption">Illustration provisoire</span></div><div className="freebox-info"><div className="freebox-meta">{m.year} · {m.type}</div><h3>{m.name}</h3><p>{m.equipment}</p><a href={m.url} target="_blank" rel="noreferrer">Voir sur le site Free <ExternalLink size={13}/></a></div></article>)}</div><p className="gallery-note">Les illustrations sont provisoires : les photos officielles des boîtiers seront intégrées dès que leurs fichiers sources pourront être récupérés de façon fiable.</p></> : <>
         <div className="page-heading"><div><div className="eyebrow">ESPACE DE TRAVAIL</div><h1>{favoritesOnly?'Vos favoris':category==='all'?'Toutes vos réponses':categories.find(c=>c.id===category)?.name}</h1><p>Retrouvez, organisez et copiez vos réponses en un clic.</p></div><div className="total-pill">{filtered.length} réponse{filtered.length>1?'s':''}</div></div>
         <div className="toolbar"><div className="search-box"><Search size={19}/><input ref={searchRef} value={query} onChange={e=>setQuery(e.target.value)} placeholder="Rechercher une réponse, un mot-clé, un raccourci…" aria-label="Rechercher dans les réponses"/>{query&&<button className="clear-search" onClick={()=>setQuery('')} aria-label="Effacer la recherche"><X size={16}/></button>}<kbd className="search-shortcut">Ctrl K</kbd></div><button className={`filter-btn ${favoritesOnly?'selected':''}`} onClick={()=>setFavoritesOnly(v=>!v)}><SlidersHorizontal size={17}/> Favoris</button></div>
         {error && <div className="alert">{error}<button onClick={()=>setError('')}><X size={16}/></button></div>}
@@ -131,6 +136,7 @@ export default function App() {
             {!!(r.tags||[]).length&&<div className="tags">{r.tags.slice(0,3).map(t=><span key={t}><Tag size={11}/>{t}</span>)}</div>}
             <div className="card-footer"><button className="copy-btn" onClick={()=>copy(r)}>{copied===r.id?<><Check size={16}/> Copié</>:<><Copy size={16}/> Copier la réponse</>}</button><div className="card-actions"><button className="icon-btn" onClick={()=>openEdit(r)} aria-label="Modifier"><Pencil size={16}/></button><button className="icon-btn danger-hover" onClick={()=>remove(r)} aria-label="Supprimer"><Trash2 size={16}/></button></div></div>
           </article>)}</div>}
+      </>}
       </section>
     </main>
     {modal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(false)}}><form className="modal" onSubmit={save}><div className="modal-head"><div><div className="eyebrow">{editing?'MODIFICATION':'NOUVELLE ENTRÉE'}</div><h2>{editing?'Modifier la réponse':'Créer une réponse type'}</h2></div><button type="button" className="icon-btn" onClick={()=>setModal(false)}><X/></button></div>
