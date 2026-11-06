@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Search, Plus, Copy, Star, Pencil, Trash2, X, Menu, MessageSquareText, Check, Tag, SlidersHorizontal } from 'lucide-react';
 
@@ -7,6 +7,11 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 const emptyForm = { title: '', content: '', category_id: '', shortcut: '', tags: '' };
+const normalizeSearch = value => (value || '')
+  .toLocaleLowerCase('fr')
+  .normalize('NFD')
+  .replace(/[\\u0300-\\u036f]/g, '')
+  .trim();
 export default function App() {
   const [responses, setResponses] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -20,6 +25,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mobileMenu, setMobileMenu] = useState(false);
+  const searchRef = useRef(null);
 
   async function load() {
     if (!supabase) { setError('Connexion Supabase non configurée. Ajoutez les variables VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY dans Vercel.'); setLoading(false); return; }
@@ -34,11 +40,46 @@ export default function App() {
   }
   useEffect(() => { load(); }, []);
 
-  const filtered = useMemo(() => responses.filter(r => {
-    const q = query.trim().toLocaleLowerCase('fr');
-    const matches = !q || [r.title, r.content, r.shortcut, ...(r.tags || [])].filter(Boolean).join(' ').toLocaleLowerCase('fr').includes(q);
-    return matches && (category === 'all' || r.category_id === category) && (!favoritesOnly || r.is_favorite);
-  }), [responses, query, category, favoritesOnly]);
+  const filtered = useMemo(() => {
+    const terms = normalizeSearch(query).split(/\\s+/).filter(Boolean);
+    return responses
+      .map(r => {
+        const title = normalizeSearch(r.title);
+        const shortcut = normalizeSearch(r.shortcut);
+        const tags = (r.tags || []).map(normalizeSearch);
+        const content = normalizeSearch(r.content);
+        const searchable = [title, shortcut, ...tags, content].join(' ');
+        const matches = terms.every(term => searchable.includes(term));
+        let score = 0;
+        for (const term of terms) {
+          if (title.includes(term)) score += title === term ? 14 : 10;
+          if (tags.some(tag => tag.includes(term))) score += 7;
+          if (shortcut.includes(term)) score += 5;
+          if (content.includes(term)) score += 1;
+        }
+        return { response: r, matches, score };
+      })
+      .filter(item => item.matches
+        && (category === 'all' || item.response.category_id === category)
+        && (!favoritesOnly || item.response.is_favorite))
+      .sort((a, b) => b.score - a.score || new Date(b.response.updated_at || 0) - new Date(a.response.updated_at || 0))
+      .map(item => item.response);
+  }, [responses, query, category, favoritesOnly]);
+
+  useEffect(() => {
+    const handleSearchShortcut = event => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+      if (event.key === 'Escape' && document.activeElement === searchRef.current) {
+        setQuery('');
+        searchRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', handleSearchShortcut);
+    return () => window.removeEventListener('keydown', handleSearchShortcut);
+  }, []);
 
   function openNew() { setEditing(null); setForm(emptyForm); setModal(true); }
   function openEdit(r) { setEditing(r); setForm({ title:r.title || '', content:r.content || '', category_id:r.category_id || '', shortcut:r.shortcut || '', tags:(r.tags || []).join(', ') }); setModal(true); }
@@ -79,7 +120,7 @@ export default function App() {
       <header className="topbar"><button className="icon-btn mobile-menu" onClick={()=>setMobileMenu(true)}><Menu/></button><div className="crumb">Bibliothèque <span>/</span> <b>{favoritesOnly?'Favoris':category==='all'?'Toutes les réponses':categories.find(c=>c.id===category)?.name}</b></div><button className="primary-btn top-add" onClick={openNew}><Plus size={17}/> Nouvelle réponse</button></header>
       <section className="content">
         <div className="page-heading"><div><div className="eyebrow">ESPACE DE TRAVAIL</div><h1>{favoritesOnly?'Vos favoris':category==='all'?'Toutes vos réponses':categories.find(c=>c.id===category)?.name}</h1><p>Retrouvez, organisez et copiez vos réponses en un clic.</p></div><div className="total-pill">{filtered.length} réponse{filtered.length>1?'s':''}</div></div>
-        <div className="toolbar"><div className="search-box"><Search size={19}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Rechercher une réponse, un mot-clé, un raccourci…"/>{query&&<button className="clear-search" onClick={()=>setQuery('')}><X size={16}/></button>}</div><button className={`filter-btn ${favoritesOnly?'selected':''}`} onClick={()=>setFavoritesOnly(v=>!v)}><SlidersHorizontal size={17}/> Favoris</button></div>
+        <div className="toolbar"><div className="search-box"><Search size={19}/><input ref={searchRef} value={query} onChange={e=>setQuery(e.target.value)} placeholder="Rechercher une réponse, un mot-clé, un raccourci…" aria-label="Rechercher dans les réponses"/>{query&&<button className="clear-search" onClick={()=>setQuery('')} aria-label="Effacer la recherche"><X size={16}/></button>}<kbd className="search-shortcut">Ctrl K</kbd></div><button className={`filter-btn ${favoritesOnly?'selected':''}`} onClick={()=>setFavoritesOnly(v=>!v)}><SlidersHorizontal size={17}/> Favoris</button></div>
         {error && <div className="alert">{error}<button onClick={()=>setError('')}><X size={16}/></button></div>}
         {loading ? <div className="empty-state">Chargement de votre bibliothèque…</div> : filtered.length===0 ? <div className="empty-state"><div className="empty-icon"><MessageSquareText size={25}/></div><h3>Aucune réponse trouvée</h3><p>Essayez une autre recherche ou ajoutez votre première réponse.</p><button className="primary-btn" onClick={openNew}><Plus size={17}/> Ajouter une réponse</button></div> :
           <div className="response-grid">{filtered.map(r=><article className="response-card" key={r.id}>
